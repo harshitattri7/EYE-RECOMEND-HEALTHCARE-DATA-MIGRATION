@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  mariadb-legacy:
+    image: mariadb:10.11
+    container_name: mariadb-legacy-source
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword123
+      MYSQL_DATABASE: drupal_eyerecommend_ehr
+      MYSQL_USER: migration_user
+      MYSQL_PASSWORD: migration_pass_secure
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./tests/fixtures/mariadb_init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword123"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  postgres-target:
+    image: postgres:15-alpine
+    container_name: postgres-central-target
+    environment:
+      POSTGRES_DB: eyerecommend_central_db
+      POSTGRES_USER: azure_pg_admin
+      POSTGRES_PASSWORD: TargetPassSecure2024!
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./database/00_init_database.sql:/docker-entrypoint-initdb.d/00_init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U azure_pg_admin -d eyerecommend_central_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  migration-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: migration-pipeline-runner
+    depends_on:
+      mariadb-legacy:
+        condition: service_healthy
+      postgres-target:
+        condition: service_healthy
+    environment:
+      ENV: "local"
+      SOURCE_MARIADB_HOST: "mariadb-legacy"
+      SOURCE_MARIADB_PORT: "3306"
+      SOURCE_MARIADB_DB: "drupal_eyerecommend_ehr"
+      SOURCE_MARIADB_USER: "migration_user"
+      SOURCE_MARIADB_PASSWORD: "migration_pass_secure"
+      TARGET_PG_HOST: "postgres-target"
+      TARGET_PG_PORT: "5432"
+      TARGET_PG_DB: "eyerecommend_central_db"
+      TARGET_PG_USER: "azure_pg_admin"
+      TARGET_PG_PASSWORD: "TargetPassSecure2024!"
+    volumes:
+      - ./:/workspace
+    working_dir: /workspace
+    command: ["python", "scripts/reconciliation_engine.py", "--mode", "demo"]

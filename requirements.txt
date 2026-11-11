@@ -1,0 +1,32 @@
+# Core PySpark & Data Engineering
+pyspark>=3.5.0
+delta-spark>=3.0.0
+pandas>=2.1.0
+numpy>=1.24.0
+pyarrow>=14.0.0
+
+# Database Connectors
+psycopg2-binary>=2.9.9
+pymysql>=1.1.0
+SQLAlchemy>=2.0.0
+
+# Azure SDK
+azure-identity>=1.15.0
+azure-keyvault-secrets>=4.7.0
+azure-storage-blob>=12.19.0
+azure-storage-file-datalake>=12.14.0
+azure-mgmt-datafactory>=3.1.0
+
+# Data Quality & Validation
+pydantic>=2.5.0
+great-expectations>=0.18.0
+tabulate>=0.9.0
+pyyaml>=6.0.1
+
+# Testing & Linting
+pytest>=7.4.0
+pytest-cov>=4.1.0
+ruff>=0.1.6
+black>=23.11.0
+mypy>=1.7.0
+faker>=20.1.0
