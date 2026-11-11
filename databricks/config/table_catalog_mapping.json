@@ -1,0 +1,109 @@
+{
+  "project": "Eye Recommend Healthcare Data Migration",
+  "version": "2.4.0",
+  "total_production_tables": 300,
+  "domains": {
+    "core": {
+      "table_count": 45,
+      "description": "Master Patient Index (MPI), demographics, identities, consents, contacts",
+      "primary_tables": [
+        "master_patient_index",
+        "patient_source_cross_reference",
+        "patients",
+        "patient_contacts",
+        "patient_addresses",
+        "patient_emergency_contacts",
+        "patient_guardians",
+        "patient_consents",
+        "practitioners",
+        "clinical_facilities"
+      ]
+    },
+    "clinical": {
+      "table_count": 55,
+      "description": "EHR clinical encounters, notes, vitals, observations, lab tests",
+      "primary_tables": [
+        "encounters",
+        "provider_notes",
+        "vital_signs",
+        "chief_complaints",
+        "clinical_alerts",
+        "physical_examinations",
+        "laboratory_orders",
+        "laboratory_results",
+        "diagnostic_imaging_orders",
+        "diagnostic_imaging_reports"
+      ]
+    },
+    "diagnostics_procedures": {
+      "table_count": 40,
+      "description": "ICD-10, SNOMED, CPT, patient diagnoses, surgical procedures",
+      "primary_tables": [
+        "catalog_icd10",
+        "catalog_snomed_ct",
+        "catalog_cpt_codes",
+        "patient_diagnoses",
+        "performed_procedures",
+        "procedure_cpt_modifiers",
+        "surgical_case_logs",
+        "implantable_devices_log"
+      ]
+    },
+    "pharmacy_medications": {
+      "table_count": 35,
+      "description": "NDC medication catalog, prescriptions, refills, dispense history",
+      "primary_tables": [
+        "catalog_ndc",
+        "prescriptions",
+        "dispense_history",
+        "in_clinic_administrations",
+        "drug_interactions_catalog",
+        "pharmacy_network_directory"
+      ]
+    },
+    "optometry_ophthalmology": {
+      "table_count": 45,
+      "description": "Refractions OD/OS, visual acuity, tonometry, eyewear orders, contact lenses",
+      "primary_tables": [
+        "visual_acuity_exams",
+        "refractions",
+        "tonometry_exams",
+        "slit_lamp_exams",
+        "dilated_fundus_exams",
+        "eyewear_prescriptions",
+        "contact_lens_prescriptions",
+        "optical_dispensary_orders",
+        "catalog_frames_inventory"
+      ]
+    },
+    "crm_billing_insurance": {
+      "table_count": 50,
+      "description": "Salesforce accounts, leads, insurance policies, claims, invoices",
+      "primary_tables": [
+        "sf_accounts",
+        "sf_leads",
+        "sf_cases",
+        "insurance_payers",
+        "patient_insurance_policies",
+        "eligibility_checks",
+        "invoices",
+        "invoice_line_items",
+        "payments",
+        "insurance_claims"
+      ]
+    },
+    "metadata_ops": {
+      "table_count": 30,
+      "description": "Migration batch control, watermarks, data quality quarantine, reconciliation",
+      "primary_tables": [
+        "batch_control_ledger",
+        "table_manifest_catalog",
+        "watermark_registry",
+        "dq_quarantine_records",
+        "reconciliation_audit_ledger",
+        "pipeline_telemetry_events",
+        "schema_drift_history"
+      ]
+    }
+  }
+}
