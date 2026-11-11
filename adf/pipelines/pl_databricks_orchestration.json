@@ -1,0 +1,119 @@
+{
+  "name": "pl_databricks_orchestration",
+  "properties": {
+    "description": "Orchestrates Databricks PySpark Medallion execution: Bronze -> Silver Cleansing & Masking -> Gold Modeling -> PostgreSQL Idempotent Load",
+    "parameters": {
+      "BatchId": {
+        "type": "string",
+        "defaultValue": "@guid()"
+      },
+      "Environment": {
+        "type": "string",
+        "defaultValue": "prod"
+      }
+    },
+    "activities": [
+      {
+        "name": "Databricks_02_BronzeToSilver",
+        "type": "DatabricksNotebook",
+        "policy": {
+          "timeout": "0.02:00:00",
+          "retry": 2,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookPath": "/Shared/eyerecommend/jobs/03_silver_cleansing_curation",
+          "baseParameters": {
+            "batch_id": "@pipeline().parameters.BatchId",
+            "env": "@pipeline().parameters.Environment"
+          }
+        },
+        "linkedServiceName": {
+          "referenceName": "ls_azure_databricks",
+          "type": "LinkedServiceReference"
+        }
+      },
+      {
+        "name": "Databricks_03_SilverToGold",
+        "type": "DatabricksNotebook",
+        "dependsOn": [
+          {
+            "activity": "Databricks_02_BronzeToSilver",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.02:00:00",
+          "retry": 2,
+          "retryIntervalInSeconds": 60
+        },
+        "typeProperties": {
+          "notebookPath": "/Shared/eyerecommend/jobs/04_gold_domain_aggregation",
+          "baseParameters": {
+            "batch_id": "@pipeline().parameters.BatchId",
+            "env": "@pipeline().parameters.Environment"
+          }
+        },
+        "linkedServiceName": {
+          "referenceName": "ls_azure_databricks",
+          "type": "LinkedServiceReference"
+        }
+      },
+      {
+        "name": "Databricks_04_PostgresTargetLoad",
+        "type": "DatabricksNotebook",
+        "dependsOn": [
+          {
+            "activity": "Databricks_03_SilverToGold",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "policy": {
+          "timeout": "0.03:00:00",
+          "retry": 3,
+          "retryIntervalInSeconds": 120
+        },
+        "typeProperties": {
+          "notebookPath": "/Shared/eyerecommend/jobs/05_postgres_highspeed_loader",
+          "baseParameters": {
+            "batch_id": "@pipeline().parameters.BatchId",
+            "env": "@pipeline().parameters.Environment",
+            "mode": "upsert"
+          }
+        },
+        "linkedServiceName": {
+          "referenceName": "ls_azure_databricks",
+          "type": "LinkedServiceReference"
+        }
+      },
+      {
+        "name": "SendFailureAlertToAzureMonitor",
+        "type": "WebActivity",
+        "dependsOn": [
+          {
+            "activity": "Databricks_04_PostgresTargetLoad",
+            "dependencyConditions": [
+              "Failed"
+            ]
+          }
+        ],
+        "typeProperties": {
+          "url": "https://monitor.azure.internal/webhooks/migration-alert",
+          "method": "POST",
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "batchId": "@pipeline().parameters.BatchId",
+            "status": "FAILED",
+            "errorMessage": "PostgreSQL Target Load pipeline failed during Databricks stage"
+          }
+        }
+      }
+    ]
+  }
+}

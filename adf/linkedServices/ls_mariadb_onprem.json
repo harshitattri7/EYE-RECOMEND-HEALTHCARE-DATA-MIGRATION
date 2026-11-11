@@ -1,0 +1,27 @@
+{
+  "name": "ls_mariadb_onprem",
+  "type": "Microsoft.DataFactory/factories/linkedservices",
+  "properties": {
+    "description": "Legacy Drupal MariaDB EHR database connection",
+    "type": "MariaDB",
+    "typeProperties": {
+      "server": "mariadb-clinical.internal.eyerecommend.com",
+      "port": 3306,
+      "database": "drupal_eyerecommend_ehr",
+      "username": "migration_svc",
+      "password": {
+        "type": "AzureKeyVaultSecret",
+        "store": {
+          "referenceName": "ls_azure_keyvault",
+          "type": "LinkedServiceReference"
+        },
+        "secretName": "mariadb-svc-password"
+      },
+      "useSsl": true
+    },
+    "connectVia": {
+      "referenceName": "shir-eyerecommend-onprem-gateway",
+      "type": "IntegrationRuntimeReference"
+    }
+  }
+}

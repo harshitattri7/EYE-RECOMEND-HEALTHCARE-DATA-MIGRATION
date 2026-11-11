@@ -1,0 +1,19 @@
+{
+  "name": "ls_azure_databricks",
+  "type": "Microsoft.DataFactory/factories/linkedservices",
+  "properties": {
+    "description": "Azure Databricks high-concurrency automated ETL cluster",
+    "type": "AzureDatabricks",
+    "typeProperties": {
+      "domain": "https://adb-1982736451029384.4.azuredatabricks.net",
+      "authentication": "MSI",
+      "newClusterNodeType": "Standard_D8s_v5",
+      "newClusterNumOfWorkers": "8",
+      "newClusterSparkVersion": "13.3.x-scala2.12",
+      "newClusterSparkConf": {
+        "spark.databricks.delta.preview.enabled": "true",
+        "spark.sql.shuffle.partitions": "200"
+      }
+    }
+  }
+}

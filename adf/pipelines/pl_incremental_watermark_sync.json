@@ -1,0 +1,113 @@
+{
+  "name": "pl_incremental_watermark_sync",
+  "properties": {
+    "description": "Incremental sync using high watermarks to capture delta mutations from MariaDB & Salesforce",
+    "parameters": {
+      "TargetTableName": {
+        "type": "string",
+        "defaultValue": "patients"
+      },
+      "TargetSchema": {
+        "type": "string",
+        "defaultValue": "core"
+      }
+    },
+    "activities": [
+      {
+        "name": "LookupCurrentWatermark",
+        "type": "Lookup",
+        "typeProperties": {
+          "source": {
+            "type": "PostgreSqlSource",
+            "query": {
+              "value": "@concat('SELECT w.last_processed_watermark_timestamp, m.source_table_or_entity, m.watermark_column, m.primary_key_column FROM metadata_ops.watermark_registry w JOIN metadata_ops.table_manifest_catalog m ON w.table_id = m.table_id WHERE m.target_schema = ''', pipeline().parameters.TargetSchema, ''' AND m.target_table_name = ''', pipeline().parameters.TargetTableName, ''' LIMIT 1;')",
+              "type": "Expression"
+            }
+          },
+          "dataset": {
+            "referenceName": "ds_postgres_generic_target",
+            "type": "DatasetReference",
+            "parameters": {
+              "TargetSchema": "metadata_ops",
+              "TargetTable": "watermark_registry"
+            }
+          }
+        }
+      },
+      {
+        "name": "CopyDeltaRecordsToBronze",
+        "type": "Copy",
+        "dependsOn": [
+          {
+            "activity": "LookupCurrentWatermark",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "typeProperties": {
+          "source": {
+            "type": "MariaDBSource",
+            "query": {
+              "value": "@concat('SELECT * FROM ', activity('LookupCurrentWatermark').output.firstRow.source_table_or_entity, ' WHERE ', activity('LookupCurrentWatermark').output.firstRow.watermark_column, ' > ''', activity('LookupCurrentWatermark').output.firstRow.last_processed_watermark_timestamp, '''')",
+              "type": "Expression"
+            }
+          },
+          "sink": {
+            "type": "ParquetSink",
+            "storeSettings": {
+              "type": "AzureBlobFSWriteSettings"
+            }
+          }
+        },
+        "inputs": [
+          {
+            "referenceName": "ds_mariadb_generic_source",
+            "type": "DatasetReference",
+            "parameters": {
+              "SourceTableName": "@activity('LookupCurrentWatermark').output.firstRow.source_table_or_entity"
+            }
+          }
+        ],
+        "outputs": [
+          {
+            "referenceName": "ds_adls_bronze_parquet",
+            "type": "DatasetReference",
+            "parameters": {
+              "Container": "bronze",
+              "DirectoryPath": "@concat('delta/', pipeline().parameters.TargetSchema, '/', pipeline().parameters.TargetTableName)",
+              "FileName": "delta_batch.parquet"
+            }
+          }
+        ]
+      },
+      {
+        "name": "UpdateWatermarkRegistry",
+        "type": "Script",
+        "dependsOn": [
+          {
+            "activity": "CopyDeltaRecordsToBronze",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "typeProperties": {
+          "scripts": [
+            {
+              "text": {
+                "value": "@concat('UPDATE metadata_ops.watermark_registry SET last_processed_watermark_timestamp = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE table_id = (SELECT table_id FROM metadata_ops.table_manifest_catalog WHERE target_schema = ''', pipeline().parameters.TargetSchema, ''' AND target_table_name = ''', pipeline().parameters.TargetTableName, ''');')",
+                "type": "Expression"
+              },
+              "type": "NonQuery"
+            }
+          ]
+        },
+        "linkedServiceName": {
+          "referenceName": "ls_azure_postgres",
+          "type": "LinkedServiceReference"
+        }
+      }
+    ]
+  }
+}

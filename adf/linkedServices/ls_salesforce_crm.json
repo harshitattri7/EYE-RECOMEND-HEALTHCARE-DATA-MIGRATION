@@ -1,0 +1,28 @@
+{
+  "name": "ls_salesforce_crm",
+  "type": "Microsoft.DataFactory/factories/linkedservices",
+  "properties": {
+    "description": "Salesforce CRM production environment connection via OAuth2",
+    "type": "Salesforce",
+    "typeProperties": {
+      "environmentUrl": "https://eyerecommend.my.salesforce.com",
+      "username": "integration.user@eyerecommend.com",
+      "password": {
+        "type": "AzureKeyVaultSecret",
+        "store": {
+          "referenceName": "ls_azure_keyvault",
+          "type": "LinkedServiceReference"
+        },
+        "secretName": "salesforce-user-password"
+      },
+      "securityToken": {
+        "type": "AzureKeyVaultSecret",
+        "store": {
+          "referenceName": "ls_azure_keyvault",
+          "type": "LinkedServiceReference"
+        },
+        "secretName": "salesforce-security-token"
+      }
+    }
+  }
+}

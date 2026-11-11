@@ -1,0 +1,29 @@
+{
+  "name": "pl_cutover_reconciliation",
+  "properties": {
+    "description": "Executes automated pre-cutover and post-cutover reconciliation between MariaDB/Salesforce and PostgreSQL",
+    "parameters": {
+      "TolerableVariancePercentage": {
+        "type": "string",
+        "defaultValue": "0.0001"
+      }
+    },
+    "activities": [
+      {
+        "name": "RunReconciliationDatabricksJob",
+        "type": "DatabricksNotebook",
+        "typeProperties": {
+          "notebookPath": "/Shared/eyerecommend/scripts/reconciliation_engine",
+          "baseParameters": {
+            "tolerance": "@pipeline().parameters.TolerableVariancePercentage",
+            "report_destination": "adls://gold/audit_reports/reconciliation.json"
+          }
+        },
+        "linkedServiceName": {
+          "referenceName": "ls_azure_databricks",
+          "type": "LinkedServiceReference"
+        }
+      }
+    ]
+  }
+}

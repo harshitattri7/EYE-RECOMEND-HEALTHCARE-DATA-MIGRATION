@@ -1,0 +1,19 @@
+{
+  "name": "ds_mariadb_generic_source",
+  "type": "Microsoft.DataFactory/factories/datasets",
+  "properties": {
+    "parameters": {
+      "SourceTableName": {
+        "type": "string"
+      }
+    },
+    "linkedServiceName": {
+      "referenceName": "ls_mariadb_onprem",
+      "type": "LinkedServiceReference"
+    },
+    "type": "MariaDBTable",
+    "typeProperties": {
+      "tableName": "@dataset().SourceTableName"
+    }
+  }
+}

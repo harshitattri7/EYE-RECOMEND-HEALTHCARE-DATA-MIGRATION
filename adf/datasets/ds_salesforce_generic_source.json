@@ -1,0 +1,19 @@
+{
+  "name": "ds_salesforce_generic_source",
+  "type": "Microsoft.DataFactory/factories/datasets",
+  "properties": {
+    "parameters": {
+      "SObject": {
+        "type": "string"
+      }
+    },
+    "linkedServiceName": {
+      "referenceName": "ls_salesforce_crm",
+      "type": "LinkedServiceReference"
+    },
+    "type": "SalesforceObject",
+    "typeProperties": {
+      "objectApiName": "@dataset().SObject"
+    }
+  }
+}

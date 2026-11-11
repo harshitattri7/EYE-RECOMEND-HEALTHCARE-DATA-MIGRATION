@@ -1,0 +1,120 @@
+{
+  "name": "pl_metadata_driven_ingestion",
+  "properties": {
+    "description": "Metadata-driven parameterized batch ingestion pipeline for extracting from MariaDB & Salesforce into ADLS Gen2 Bronze layer",
+    "parameters": {
+      "SourceSystemFilter": {
+        "type": "string",
+        "defaultValue": "ALL"
+      },
+      "BatchId": {
+        "type": "string",
+        "defaultValue": "@guid()"
+      }
+    },
+    "variables": {
+      "ExecutionTimestamp": {
+        "type": "String"
+      }
+    },
+    "activities": [
+      {
+        "name": "LookupActiveManifestTables",
+        "type": "Lookup",
+        "dependsOn": [],
+        "policy": {
+          "timeout": "0.00:10:00",
+          "retry": 3,
+          "retryIntervalInSeconds": 30
+        },
+        "typeProperties": {
+          "source": {
+            "type": "PostgreSqlSource",
+            "query": "SELECT table_id, target_schema, target_table_name, source_system, source_table_or_entity, primary_key_column, watermark_column, load_strategy FROM metadata_ops.table_manifest_catalog WHERE is_active = true;"
+          },
+          "dataset": {
+            "referenceName": "ds_postgres_generic_target",
+            "type": "DatasetReference",
+            "parameters": {
+              "TargetSchema": "metadata_ops",
+              "TargetTable": "table_manifest_catalog"
+            }
+          },
+          "firstRowOnly": false
+        }
+      },
+      {
+        "name": "ForEachTableParallelIngestion",
+        "type": "ForEach",
+        "dependsOn": [
+          {
+            "activity": "LookupActiveManifestTables",
+            "dependencyConditions": [
+              "Succeeded"
+            ]
+          }
+        ],
+        "typeProperties": {
+          "isSequential": false,
+          "batchCount": 20,
+          "items": {
+            "value": "@activity('LookupActiveManifestTables').output.value",
+            "type": "Expression"
+          },
+          "activities": [
+            {
+              "name": "CopySourceToBronzeParquet",
+              "type": "Copy",
+              "policy": {
+                "timeout": "0.01:00:00",
+                "retry": 3,
+                "retryIntervalInSeconds": 60,
+                "secureOutput": false,
+                "secureInput": false
+              },
+              "typeProperties": {
+                "source": {
+                  "type": "MariaDBSource",
+                  "query": {
+                    "value": "@concat('SELECT *, CURRENT_TIMESTAMP AS _ingest_ts, ''', pipeline().parameters.BatchId, ''' AS _batch_id FROM ', item().source_table_or_entity)",
+                    "type": "Expression"
+                  }
+                },
+                "sink": {
+                  "type": "ParquetSink",
+                  "storeSettings": {
+                    "type": "AzureBlobFSWriteSettings"
+                  },
+                  "formatSettings": {
+                    "type": "ParquetWriteSettings"
+                  }
+                },
+                "enableStaging": false
+              },
+              "inputs": [
+                {
+                  "referenceName": "ds_mariadb_generic_source",
+                  "type": "DatasetReference",
+                  "parameters": {
+                    "SourceTableName": "@item().source_table_or_entity"
+                  }
+                }
+              ],
+              "outputs": [
+                {
+                  "referenceName": "ds_adls_bronze_parquet",
+                  "type": "DatasetReference",
+                  "parameters": {
+                    "Container": "bronze",
+                    "DirectoryPath": "@concat(item().target_schema, '/', item().target_table_name, '/', formatDateTime(utcnow(), 'yyyy/MM/dd'))",
+                    "FileName": "@concat(item().target_table_name, '_part_', pipeline().parameters.BatchId, '.parquet')"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

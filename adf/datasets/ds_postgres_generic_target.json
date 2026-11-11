@@ -1,0 +1,23 @@
+{
+  "name": "ds_postgres_generic_target",
+  "type": "Microsoft.DataFactory/factories/datasets",
+  "properties": {
+    "parameters": {
+      "TargetSchema": {
+        "type": "string"
+      },
+      "TargetTable": {
+        "type": "string"
+      }
+    },
+    "linkedServiceName": {
+      "referenceName": "ls_azure_postgres",
+      "type": "LinkedServiceReference"
+    },
+    "type": "PostgreSqlTable",
+    "typeProperties": {
+      "schema": "@dataset().TargetSchema",
+      "table": "@dataset().TargetTable"
+    }
+  }
+}

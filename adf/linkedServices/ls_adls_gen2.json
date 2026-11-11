@@ -1,0 +1,28 @@
+{
+  "name": "ls_adls_gen2",
+  "type": "Microsoft.DataFactory/factories/linkedservices",
+  "properties": {
+    "description": "ADLS Gen2 Storage Account for Medallion Lakehouse",
+    "type": "AzureBlobFS",
+    "typeProperties": {
+      "url": "https://steyerecommendproddls01.dfs.core.windows.net",
+      "servicePrincipalId": {
+        "type": "AzureKeyVaultSecret",
+        "store": {
+          "referenceName": "ls_azure_keyvault",
+          "type": "LinkedServiceReference"
+        },
+        "secretName": "adls-spn-client-id"
+      },
+      "servicePrincipalKey": {
+        "type": "AzureKeyVaultSecret",
+        "store": {
+          "referenceName": "ls_azure_keyvault",
+          "type": "LinkedServiceReference"
+        },
+        "secretName": "adls-spn-client-secret"
+      },
+      "tenant": "72f988bf-86f1-41af-91ab-2d7cd011db47"
+    }
+  }
+}

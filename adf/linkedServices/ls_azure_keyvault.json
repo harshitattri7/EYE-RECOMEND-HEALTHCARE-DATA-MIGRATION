@@ -1,0 +1,11 @@
+{
+  "name": "ls_azure_keyvault",
+  "type": "Microsoft.DataFactory/factories/linkedservices",
+  "properties": {
+    "description": "Secure access to Key Vault for database passwords and Salesforce API secrets",
+    "type": "AzureKeyVault",
+    "typeProperties": {
+      "baseUrl": "https://kv-eyerecommend-prod-01.vault.azure.net/"
+    }
+  }
+}

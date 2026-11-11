@@ -1,0 +1,18 @@
+{
+  "name": "ls_azure_postgres",
+  "type": "Microsoft.DataFactory/factories/linkedservices",
+  "properties": {
+    "description": "Azure Database for PostgreSQL Flexible Server target application database",
+    "type": "PostgreSql",
+    "typeProperties": {
+      "connectionString": {
+        "type": "AzureKeyVaultSecret",
+        "store": {
+          "referenceName": "ls_azure_keyvault",
+          "type": "LinkedServiceReference"
+        },
+        "secretName": "target-postgres-connection-string"
+      }
+    }
+  }
+}

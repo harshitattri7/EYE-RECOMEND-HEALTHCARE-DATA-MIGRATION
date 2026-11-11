@@ -1,0 +1,32 @@
+{
+  "name": "ds_adls_bronze_parquet",
+  "type": "Microsoft.DataFactory/factories/datasets",
+  "properties": {
+    "parameters": {
+      "Container": {
+        "type": "string",
+        "defaultValue": "bronze"
+      },
+      "DirectoryPath": {
+        "type": "string"
+      },
+      "FileName": {
+        "type": "string"
+      }
+    },
+    "linkedServiceName": {
+      "referenceName": "ls_adls_gen2",
+      "type": "LinkedServiceReference"
+    },
+    "type": "Parquet",
+    "typeProperties": {
+      "location": {
+        "type": "AzureBlobFSLocation",
+        "fileName": "@dataset().FileName",
+        "folderPath": "@dataset().DirectoryPath",
+        "fileSystem": "@dataset().Container"
+      },
+      "compressionCodec": "snappy"
+    }
+  }
+}
