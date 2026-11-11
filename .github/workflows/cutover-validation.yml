@@ -1,0 +1,39 @@
+name: Production Cutover Validation & Reconciliation Gate
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_env:
+        description: 'Target Deployment Environment'
+        required: true
+        default: 'prod'
+        type: choice
+        options:
+          - staging
+          - prod
+      variance_tolerance:
+        description: 'Reconciliation Tolerance Percentage'
+        required: true
+        default: '0.0001'
+
+jobs:
+  cutover-dry-run:
+    name: Cutover Gate & Reconciliation Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Run Cutover Runbook
+        run: |
+          python scripts/cutover_orchestrator.py
+
+      - name: Publish Reconciliation Audit Report
+        run: |
+          python scripts/reconciliation_engine.py --tolerance ${{ github.event.inputs.variance_tolerance }} --output-report reports/cutover_reconciliation.md
+          cat reports/cutover_reconciliation.md >> $GITHUB_STEP_SUMMARY

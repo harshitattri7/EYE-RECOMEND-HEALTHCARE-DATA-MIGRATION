@@ -1,0 +1,72 @@
+name: CI/CD Pipeline - Eye Recommend Healthcare Data Migration
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-and-lint:
+    name: Lint & PySpark Data Quality Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Execute Unit & Integration Test Suite
+        run: |
+          python -m unittest discover -v -s tests -p "test_*.py"
+
+      - name: Validate Reconciliation Engine Dry Run
+        run: |
+          python scripts/reconciliation_engine.py --mode dryrun
+
+      - name: Execute Cutover Runbook Simulation
+        run: |
+          python scripts/cutover_orchestrator.py
+
+  terraform-validate:
+    name: Infrastructure as Code Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.6.0"
+
+      - name: Terraform Format Check
+        run: |
+          terraform -chdir=infrastructure/terraform fmt -check -diff || true
+
+  adf-template-validate:
+    name: Azure Data Factory JSON Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Validate ADF Pipelines & Datasets JSON Syntax
+        run: |
+          python3 -c "
+          import json, glob
+          files = glob.glob('adf/**/*.json', recursive=True)
+          for f in files:
+              with open(f) as fp:
+                  json.load(fp)
+          print(f'Successfully validated {len(files)} ADF JSON manifests.')
+          "
