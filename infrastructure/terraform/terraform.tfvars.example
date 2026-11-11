@@ -1,0 +1,5 @@
+project_name       = "eyerecommend"
+environment        = "prod"
+azure_region       = "eastus2"
+pg_admin_username  = "azure_pg_admin"
+pg_admin_password  = "SuperSecretSecureP@ssw0rd!2024"
