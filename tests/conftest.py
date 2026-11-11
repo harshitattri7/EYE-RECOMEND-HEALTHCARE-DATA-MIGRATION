@@ -1,14 +1,17 @@
 """
 Shared Pytest Fixtures
 """
-import pytest
 import os
 import sys
 
+try:
+    import pytest
+except ImportError:
+    pytest = None
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-@pytest.fixture
-def sample_patient_raw():
+def sample_patient_raw_data():
     return {
         "field_mrn_value": "MRN-EYE-10001",
         "field_first_name_value": "John",
@@ -21,6 +24,12 @@ def sample_patient_raw():
         "created": 1609459200,
         "changed": 1672531199
     }
+
+if pytest is not None:
+    @pytest.fixture
+    def sample_patient_raw():
+        return sample_patient_raw_data()
+
 
 @pytest.fixture
 def sample_refraction_raw():

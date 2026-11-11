@@ -16,10 +16,10 @@ install:
 	pip install -r requirements.txt
 
 lint:
-	python3 -m unittest discover -s tests -p "*test*.py"
+	python3 -m unittest discover -s tests -p "test_*.py"
 
 test:
-	python3 -m unittest discover -v -s tests -p "*test*.py"
+	python3 -m unittest discover -v -s tests -p "test_*.py"
 
 generate-data:
 	python3 scripts/generate_synthetic_data.py --records 5000 --output data/synthetic
