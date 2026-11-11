@@ -1,0 +1,25 @@
+Source System,Source Table,Source Column,Source DataType,Target Schema,Target Table,Target Column,Target DataType,Transformation Logic,Business & DQ Rules
+DRUPAL_MARIADB,node_patient_profile,nid,INT UNSIGNED,core,patients,patient_id,UUID,UUIDv5(namespace_dns 'mrn:' || field_mrn_value),Primary key; non-null; immutable
+DRUPAL_MARIADB,field_data_patient_demographics,field_mrn_value,VARCHAR(64),core,patients,mrn,VARCHAR(64),UPPER(TRIM(field_mrn_value)),Unique constraint; format MRN-EYE-XXXXX
+DRUPAL_MARIADB,field_data_patient_demographics,field_first_name_value,VARCHAR(64),core,patients,first_name_masked,VARCHAR(64),HIPAA mask: First char + asterisks (e.g. J***),PHI Masked; non-null
+DRUPAL_MARIADB,field_data_patient_demographics,field_last_name_value,VARCHAR(64),core,patients,last_name_masked,VARCHAR(64),HIPAA mask: First char + asterisks (e.g. D**),PHI Masked; non-null
+DRUPAL_MARIADB,field_data_patient_demographics,field_dob_value,DATE,core,patients,date_of_birth,DATE,Cast to ISO DATE YYYY-MM-DD,Non-null; Range: 1890 to CURRENT_DATE
+DRUPAL_MARIADB,field_data_patient_demographics,field_gender_value,VARCHAR(16),core,patients,gender,VARCHAR(24),Harmonize 'M'->'MALE' 'F'->'FEMALE' 'O'->'OTHER',Default: UNKNOWN
+DRUPAL_MARIADB,field_data_patient_demographics,field_ssn_value,VARCHAR(16),core,patients,ssn_last_four,VARCHAR(4),Extract regex \\d{4}$,Direct raw SSN removed from storage
+DRUPAL_MARIADB,field_data_patient_demographics,field_ssn_value,VARCHAR(16),core,patients,hashed_ssn,VARCHAR(128),SHA-256(KeyVault_Salt || Cleaned_SSN),Irreversible cryptographic token
+DRUPAL_MARIADB,node_clinical_encounter,nid,INT UNSIGNED,clinical,encounters,encounter_id,UUID,UUIDv5(namespace_dns 'encounter:nid:' || nid),Unique encounter ID
+DRUPAL_MARIADB,node_clinical_encounter,patient_nid,INT UNSIGNED,clinical,encounters,patient_id,UUID,FK lookup on core.patients(patient_id),Referential integrity mandatory
+DRUPAL_MARIADB,node_clinical_encounter,provider_npi,VARCHAR(10),clinical,encounters,practitioner_id,UUID,FK lookup on core.practitioners(npi),10-digit NPI Luhn check
+DRUPAL_MARIADB,node_clinical_encounter,encounter_date,DATETIME,clinical,encounters,admission_timestamp,TIMESTAMP WITH TIME ZONE,Convert to UTC ISO timestamp,Must not be in the future
+DRUPAL_MARIADB,node_clinical_encounter,encounter_type,VARCHAR(64),clinical,encounters,encounter_type,VARCHAR(64),UPPER(TRIM(encounter_type)),Standardized optometric encounter types
+DRUPAL_MARIADB,field_data_refraction,od_sphere,DECIMAL(4,2),optometry_ophthalmology,refractions,od_sphere,NUMERIC(4,2),ROUND(od_sphere, 2),Clinical Range: -25.00 to +25.00
+DRUPAL_MARIADB,field_data_refraction,od_cylinder,DECIMAL(4,2),optometry_ophthalmology,refractions,od_cylinder,NUMERIC(4,2),ROUND(od_cylinder, 2),Negative cylinder convention
+DRUPAL_MARIADB,field_data_refraction,od_axis,INT,optometry_ophthalmology,refractions,od_axis,INTEGER,Clamp between 1 and 180,Must be between 1 and 180
+DRUPAL_MARIADB,field_data_refraction,od_add,DECIMAL(3,2),optometry_ophthalmology,refractions,od_add,NUMERIC(3,2),ROUND(od_add, 2) if presbyopic,Range: +0.75 to +3.50
+DRUPAL_MARIADB,field_data_refraction,iop_od,DECIMAL(4,1),optometry_ophthalmology,tonometry_exams,iop_od_mmhg,NUMERIC(4,1),ROUND(iop_od, 1),Range: 3.0 to 70.0 mmHg
+SALESFORCE_CRM,Account,Id,VARCHAR(18),crm_billing_insurance,sf_accounts,sf_account_id,VARCHAR(18),Convert 15-char ID to 18-char case-insensitive,Primary key
+SALESFORCE_CRM,Account,Name,VARCHAR(255),crm_billing_insurance,sf_accounts,account_name,VARCHAR(256),TRIM(Name),Non-null practice or partner name
+SALESFORCE_CRM,Lead,Id,VARCHAR(18),crm_billing_insurance,sf_leads,sf_lead_id,VARCHAR(18),Convert 15-char ID to 18-char case-insensitive,Primary key
+SALESFORCE_CRM,Lead,Status,VARCHAR(40),crm_billing_insurance,sf_leads,lead_status,VARCHAR(32),UPPER(TRIM(Status)),Status catalog validation
+SALESFORCE_CRM,Insurance_Policy__c,Id,VARCHAR(18),crm_billing_insurance,patient_insurance_policies,policy_id,UUID,UUIDv5(namespace_dns 'sf:policy:' || Id),Primary key
+SALESFORCE_CRM,Invoice__c,Total_Amount__c,DECIMAL(12,2),crm_billing_insurance,invoices,total_gross_amount,NUMERIC(10,2),ROUND(Total_Amount__c, 2),Non-negative currency
