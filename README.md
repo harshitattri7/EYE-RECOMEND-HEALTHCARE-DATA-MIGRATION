@@ -151,25 +151,25 @@ To convince stakeholders that the migration was accurate, I wrote an automated r
 
 ---
 
-## 📈 Reconciliation Audit Results
+## 📈 Reconciliation Audit Results — Local Migration PoC
 
-Here are the verification results from our production cutover simulation:
+> **Note:** This is a **Local Proof-of-Concept (PoC)** using [DuckDB](https://duckdb.org/) to simulate source and target databases on a laptop — no cloud credentials needed. The reconciliation engine (`scripts/reconciliation_engine.py`) runs real SQL `COUNT(*)` and `SUM()` queries against actual in-memory tables, not hardcoded numbers.
 
-| Target Schema & Table | Source Entity | Source Records | Target Records | Net Delta | Variance | Verdict |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| `core.patients` | MariaDB (`field_data_patient_demographics`) | 248,500 | 248,500 | 0 | 0.0000% | ✅ PASS |
-| `core.patient_contacts` | MariaDB (`field_data_patient_contact`) | 312,400 | 312,400 | 0 | 0.0000% | ✅ PASS |
-| `core.master_patient_index` | MariaDB & Salesforce MPI Unified | 248,500 | 248,500 | 0 | 0.0000% | ✅ PASS |
-| `clinical.encounters` | MariaDB (`node_clinical_encounter`) | 1,145,620 | 1,145,620 | 0 | 0.0000% | ✅ PASS |
-| `clinical.vital_signs` | MariaDB (`field_data_vitals`) | 1,145,620 | 1,145,620 | 0 | 0.0000% | ✅ PASS |
-| `optometry_ophthalmology.refractions` | MariaDB (`field_data_refraction`) | 980,450 | 980,450 | 0 | 0.0000% | ✅ PASS |
-| `optometry_ophthalmology.tonometry_exams` | MariaDB (`field_data_iop_reading`) | 892,100 | 892,100 | 0 | 0.0000% | ✅ PASS |
-| `optometry_ophthalmology.eyewear_prescriptions` | MariaDB & Salesforce Orders | 524,100 | 524,100 | 0 | 0.0000% | ✅ PASS |
-| `crm_billing_insurance.sf_accounts` | Salesforce (`Account`) | 14,200 | 14,200 | 0 | 0.0000% | ✅ PASS |
-| `crm_billing_insurance.sf_leads` | Salesforce (`Lead`) | 86,500 | 86,500 | 0 | 0.0000% | ✅ PASS |
-| `crm_billing_insurance.patient_insurance_policies` | Salesforce (`Insurance_Policy__c`) | 220,400 | 220,400 | 0 | 0.0000% | ✅ PASS |
-| `crm_billing_insurance.invoices` | Salesforce (`Invoice__c`) | 730,200 | 730,200 | 0 | 0.0000% | ✅ PASS |
-| **Total Ecosystem** | **All Ingested Systems** | **6,548,590** | **6,548,590** | **0** | **0.0000%** | ✅ **100% PASS** |
+**How to reproduce these results yourself:**
+```bash
+python3 scripts/mock_migration.py         # builds source + target tables in DuckDB
+python3 scripts/reconciliation_engine.py  # runs the audit and prints the report
+```
+
+The migration PoC intentionally injects **3 real defects** to simulate problems that happen in production migrations, so the reconciliation engine has something genuine to catch:
+
+| Domain Table | Source Rows | Target Rows | Delta | Variance | Verdict | Root Cause |
+| :--- | :---: | :---: | :---: | :---: | :---: | :--- |
+| `clinical.patients` | 500 | 500 | 0 | 0.00% | ❌ FAIL | 5 phone numbers corrupted to `'ERROR'` by a transform regex bug. Reprocessing queued. |
+| `crm_billing_insurance.invoices` | 300 | 297 | -3 | 1.00% | ❌ FAIL | 3 late-arriving Salesforce records committed after ADF pipeline ran. Delta-sync scheduled. |
+| `optometry_ophthalmology.tonometry_exams` | 200 | 198 | -2 | 1.00% | ❌ FAIL | 2 rows quarantined by Data Quality Engine (IOP out of physiological range). Sent to `dq_quarantine_records`. |
+
+**What I learned from this:** A real migration is never perfectly clean on the first run. The value of the reconciliation engine is not to show zero errors — it is to *find* errors fast so you can fix them before go-live. The 3 defects above were caught, root-caused, and each has a clear remediation path.
 
 ---
 
